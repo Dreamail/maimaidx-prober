@@ -1,5 +1,5 @@
 const config = {
-    host: "maimai.bakapiano.com",
+    host: "10.231.86.162",
     dev: false,
     fetchTimeOut: 60 * 3 * 1000,
     fetchRetryCount: 3,

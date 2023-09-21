@@ -2,6 +2,42 @@ import axios from 'axios';
 import { wrapper } from 'axios-cookiejar-support';
 import { CookieJar } from 'tough-cookie';
 import fs from "fs";
+import url from "url";
+
+let redirectObjects = {};
+
+class RedirectObject {
+    constructor(token, type, config, originURL) {
+        this.token = token;
+        this.type = type;
+        if (this.type !== 'maimai-dx' && this.type !== 'chunithm') {
+            throw new Error('Invalid type');
+        }
+        this.config = config;
+        this.uri = url.parse(originURL, true).query.redirect_uri;
+    }
+
+    isRedirectOf(newURL) {
+        return newURL.startsWith(this.uri);
+    }
+}
+
+function addObject(obj) {
+    redirectObjects[obj.token] = obj;
+}
+
+function getObject(newURL) {
+    // iterate
+    for (let key in redirectObjects) {
+        if (redirectObjects[key].isRedirectOf(newURL)) {
+            return redirectObjects[key];
+        }
+    }
+}
+
+function deleteObject(obj) {
+    delete redirectObjects[obj.token];
+}
 
 async function getAxiosInstanceByAuthUrl(url) {
     const cj = new CookieJar();
@@ -30,5 +66,9 @@ async function getAxiosInstanceByAuthUrl(url) {
 }
 
 export {
-    getAxiosInstanceByAuthUrl
+    getAxiosInstanceByAuthUrl,
+    addObject,
+    getObject,
+    deleteObject,
+    RedirectObject
 }

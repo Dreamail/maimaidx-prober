@@ -1,13 +1,20 @@
 import express from "express";
 import bodyParser from "body-parser";
-import xpath from "xpath";
+import ejs from "ejs";
+import path from "path";
 import xmldom from "xmldom";
 import axios from "axios";
 import { friendVSPageToRecordList, computeRecord, pageToRecordList } from "./dom_handler.js";
 import cookieParser from 'cookie-parser';
-const dom = xmldom.DOMParser;
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { proxy as httpProxy }from './proxy.js'
 import config from "./config.js";
+import {addObject, RedirectObject} from "./crawler.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const dom = xmldom.DOMParser;
 
 const getLoginedUploader = async (body) => {
   const loginCredentials = body.slice(7, body.indexOf("</login>"));
@@ -39,9 +46,15 @@ const getLoginedUploader = async (body) => {
 };
 
 async function getOpenWxURL(req, res) {
-  let a = await axios.get("https://tgk-wcaime.wahlap.com/wc_auth/oauth/authorize/maimai-dx")
-  const url = a.request.protocol + '//' + a.request.host + a.request.path
-  res.redirect(url.replace('https%3A%2F%2Ftgk-wcaime.wahlap.com', 'http%3A%2F%2Ftgk-wcaime.wahlap.com'))
+  if (req.body.type !== 'maimai-dx' && req.body.type !== 'chunithm') {
+    // send err
+    res.status(400).send({ message: "Invalid type" });
+  }
+  let a = await axios.get(`https://tgk-wcaime.wahlap.com/wc_auth/oauth/authorize/${ req.body.type }`)
+  let url = a.request.protocol + '//' + a.request.host + a.request.path
+  url = url.replace('https%3A%2F%2Ftgk-wcaime.wahlap.com', 'http%3A%2F%2Ftgk-wcaime.wahlap.com')
+  addObject(new RedirectObject(req.body.t, req.body.type, req.body.config, url))
+  res.send({"url": url})
 }
 
 const serve = (pageParser) => {
@@ -133,18 +146,25 @@ async function proxy(req, res) {
 const app = express();
 app.use(cookieParser());
 app.use(bodyParser.text({ limit: "32MB" }));
+app.use(bodyParser.json());
+app.set('view engine', 'ejs')
+app.set('views', path.join(__dirname, 'views'))
 app.all("*", function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "content-type");
   res.header("Access-Control-Allow-Methods", "DELETE,PUT,POST,GET,OPTIONS");
-  if (req.method.toLowerCase() === "options") res.send(200);
+  if (req.method.toLowerCase() === "options") res.sendStatus(200);
   else next();
 });
 const port = 8089;
 
 app.post("/page/friendVS", serve(friendVSPageToRecordList));
 app.post("/page", serve(pageToRecordList));
-app.get("/auth", getOpenWxURL);
+app.post("/auth", getOpenWxURL);
+app.get("/page", async (req, res) => {
+  const wechat = req.headers['user-agent'].includes('MicroMessenger');
+  res.render('template', { wechat : wechat });
+})
 app.all("/maimai-mobile/*", proxy);
 app.listen(port,() => {
   console.log(`Listening at http://localhost:${port}`);
