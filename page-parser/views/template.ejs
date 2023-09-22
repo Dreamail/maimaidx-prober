@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+</head>
+
+<body>
+  <div id="app">
+    <v-app>
+      <v-main>
+        <v-container>
+          <v-stepper vertical v-model="e1" style="box-shadow: none;">
+            <v-card-title>查分器 HTTP 代理导入工具</v-card-title>
+            <v-card-subtitle>特别鸣谢 bakapiano 对此工具的帮助！</v-card-subtitle>
+
+            <!-- display a warning message -->
+            <v-alert v-if="wechat" class="ml-4 mr-4" dense outlined type="success">已使用微信浏览器打开</v-alert>
+            <v-alert v-else class="ml-4 mr-4" dense outlined type="warning">未使用微信浏览器打开</v-alert>
+
+            <v-alert v-if="token_status === 0" class="ml-4 mr-4" dense outlined type="info">Token 检测中……</v-alert>
+            <v-alert v-if="token_status === 1" class="ml-4 mr-4" dense outlined type="success">Token 有效</v-alert>
+            <v-alert v-if="token_status === 2" class="ml-4 mr-4" dense outlined type="error">Token 无效</v-alert>
+            
+            <v-alert v-if="proxy_status === 0" class="ml-4 mr-4" dense outlined type="info">代理设置检测中……</v-alert>
+            <v-alert v-if="proxy_status === 1" class="ml-4 mr-4" dense outlined type="success">代理设置正确</v-alert>
+            <v-alert v-if="proxy_status === 2" class="ml-4 mr-4" dense outlined type="error">代理设置错误</v-alert>
+          
+            
+              <v-stepper-step :complete="e1 > 1" step="1">
+                选择导入内容
+              </v-stepper-step>
+              <v-stepper-content step="1">
+                <v-btn color="primary" block class="mt-4" @click="e1 = 2">
+                  舞萌 DX
+                </v-btn>
+
+                <v-btn color="primary" block class="mt-4" @click="e1 = 2">
+                  中二节奏
+                </v-btn>
+              </v-stepper-content>
+           
+
+              <v-stepper-step step="2">
+                导入配置
+              </v-stepper-step>
+              <v-stepper-content step="2">
+                <v-card class="mb-12" color="grey lighten-1" height="200px"></v-card>
+
+                <v-btn color="primary" @click="e1 = 1">
+                  Continue
+                </v-btn>
+
+                <v-btn text>
+                  Cancel
+                </v-btn>
+              </v-stepper-content>
+            </v-stepper-items>
+          </v-stepper>
+        </v-container>
+      </v-main>
+    </v-app>
+  </div>
+
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+  <script>
+    new Vue({
+      el: '#app',
+      vuetify: new Vuetify(),
+      data: () => {
+        return {
+          token_status: 0,
+          proxy_status: 0,
+          e1: 1,
+          username: "",
+          password: "",
+          wechat: <%= wechat; %>,
+        }
+      },
+      created: function() {
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('t')
+        if (token) {
+          axios.get(`https://www.diving-fish.com/api/maimaidxprober/token_available?token=${token}`).then(
+            () => {
+              this.token_status = 1
+            }
+          ).catch(() => {
+            this.token_status = 2
+          });
+        } else {
+          this.token_status = 2
+        }
+      }
+    })
+  </script>
+</body>
+
+</html>
